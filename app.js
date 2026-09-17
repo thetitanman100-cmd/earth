@@ -26,10 +26,12 @@ const state = {
 
   weatherRequest: 0,
   streetRequest: 0,
+  locationRequest: 0,
 
   downX: 0,
   downY: 0,
-  moved: false
+  moved: false,
+  placeName: "India"
 };
 
 
@@ -92,36 +94,124 @@ const controls = new OrbitControls(
   renderer.domElement
 );
 
+// OrbitControls is used only for smooth zoom.
+// Earth rotation is handled below so it has no left/right or
+// up/down rotational limits and can keep spinning indefinitely.
 controls.enablePan = false;
-
+controls.enableRotate = false;
 controls.enableDamping = true;
-
-controls.dampingFactor = 0.055;
-
-controls.rotateSpeed = 0.55;
-
+controls.dampingFactor = 0.08;
 controls.zoomSpeed = 0.75;
-
 controls.minDistance = 1.55;
-
 controls.maxDistance = 5.25;
+controls.target.set(0, 0, 0);
 
-controls.minPolarAngle = 0.18;
+// ------------------------------------------------------
+// UNLIMITED EARTH ROTATION / DRAG INERTIA
+// ------------------------------------------------------
+const rotationState = {
+  dragging: false,
+  pointerId: null,
+  lastX: 0,
+  lastY: 0,
+  velocityX: 0,
+  velocityY: 0,
+  lastMoveTime: 0,
+  moved: false,
+  idleTime: 0
+};
 
-controls.maxPolarAngle = Math.PI - 0.18;
+const ROTATION_SENSITIVITY = 0.0052;
+const MAX_VELOCITY = 0.075;
+const FRICTION = 0.94;
+const IDLE_ROTATION = 0.00055;
+const IDLE_DELAY = 900;
 
+function wrapAngle(angle) {
+  const twoPi = Math.PI * 2;
+  return ((angle + Math.PI) % twoPi + twoPi) % twoPi - Math.PI;
+}
 
-// Continuous Earth rotation
-controls.autoRotate = true;
-controls.autoRotateSpeed = 0.55;
+function beginEarthDrag(event) {
+  if (event.button !== 0 && event.pointerType !== "touch") return;
 
-controls.target.set(
-  0,
-  0,
-  0
-);
+  rotationState.dragging = true;
+  rotationState.pointerId = event.pointerId;
+  rotationState.lastX = event.clientX;
+  rotationState.lastY = event.clientY;
+  rotationState.velocityX = 0;
+  rotationState.velocityY = 0;
+  rotationState.lastMoveTime = performance.now();
+  rotationState.moved = false;
+  rotationState.idleTime = 0;
 
-controls.saveState();
+  renderer.domElement.setPointerCapture?.(event.pointerId);
+  renderer.domElement.style.cursor = "grabbing";
+}
+
+function moveEarthDrag(event) {
+  if (!rotationState.dragging || event.pointerId !== rotationState.pointerId) return;
+
+  const now = performance.now();
+  const dt = Math.max(8, now - rotationState.lastMoveTime);
+  const dx = event.clientX - rotationState.lastX;
+  const dy = event.clientY - rotationState.lastY;
+
+  if (Math.hypot(dx, dy) > 3) {
+    rotationState.moved = true;
+    state.moved = true;
+  }
+
+  // Horizontal and vertical movement both rotate the actual Earth.
+  // There are deliberately NO angle clamps.
+  const targetVX = dx * ROTATION_SENSITIVITY * (16.67 / dt);
+  const targetVY = dy * ROTATION_SENSITIVITY * (16.67 / dt);
+
+  rotationState.velocityX =
+    THREE.MathUtils.clamp(targetVX, -MAX_VELOCITY, MAX_VELOCITY);
+
+  rotationState.velocityY =
+    THREE.MathUtils.clamp(targetVY, -MAX_VELOCITY, MAX_VELOCITY);
+
+  globe.rotation.y += dx * ROTATION_SENSITIVITY;
+  globe.rotation.x += dy * ROTATION_SENSITIVITY;
+
+  // Keep the numerical angles small without creating a physical edge.
+  globe.rotation.y = wrapAngle(globe.rotation.y);
+  globe.rotation.x = wrapAngle(globe.rotation.x);
+
+  rotationState.lastX = event.clientX;
+  rotationState.lastY = event.clientY;
+  rotationState.lastMoveTime = now;
+  rotationState.idleTime = 0;
+}
+
+function endEarthDrag(event) {
+  if (!rotationState.dragging) return;
+  if (event.pointerId !== undefined && event.pointerId !== rotationState.pointerId) return;
+
+  rotationState.dragging = false;
+  rotationState.pointerId = null;
+  rotationState.idleTime = 0;
+
+  if (event.pointerId !== undefined) {
+    renderer.domElement.releasePointerCapture?.(event.pointerId);
+  }
+
+  renderer.domElement.style.cursor = "grab";
+renderer.domElement.style.touchAction = "none";
+}
+
+renderer.domElement.style.cursor = "grab";
+renderer.domElement.addEventListener("pointerdown", beginEarthDrag);
+renderer.domElement.addEventListener("pointermove", moveEarthDrag);
+renderer.domElement.addEventListener("pointerup", endEarthDrag);
+renderer.domElement.addEventListener("pointercancel", endEarthDrag);
+renderer.domElement.addEventListener("lostpointercapture", () => {
+  rotationState.dragging = false;
+  rotationState.pointerId = null;
+  renderer.domElement.style.cursor = "grab";
+});
 
 
 // ======================================================
@@ -618,6 +708,80 @@ function setMarker(
 
 
 // ======================================================
+// LOCATION NAME / REVERSE GEOCODING
+// ======================================================
+
+function makePlaceName(address = {}, fallbackLat = state.lat, fallbackLon = state.lon) {
+  const parts = [];
+
+  const locality =
+    address.city ||
+    address.town ||
+    address.village ||
+    address.municipality ||
+    address.county ||
+    address.state;
+
+  if (locality) parts.push(locality);
+
+  const country = address.country;
+  if (country && country !== locality) parts.push(country);
+
+  if (parts.length) return parts.join(", ");
+  return formatCoord(fallbackLat, fallbackLon);
+}
+
+async function reverseGeocode(lat, lon) {
+  const requestId = ++state.locationRequest;
+
+  $("#targetName").textContent = "LOCATING…";
+  $("#selectedTitle").textContent = "Locating selected point…";
+
+  try {
+    const url = new URL("https://nominatim.openstreetmap.org/reverse");
+    url.searchParams.set("lat", lat);
+    url.searchParams.set("lon", lon);
+    url.searchParams.set("format", "jsonv2");
+    url.searchParams.set("zoom", "10");
+    url.searchParams.set("addressdetails", "1");
+
+    const response = await fetch(url, {
+      headers: {
+        "Accept": "application/json"
+      }
+    });
+
+    if (!response.ok) throw new Error("Location lookup failed.");
+
+    const data = await response.json();
+    if (requestId !== state.locationRequest) return;
+
+    const name = makePlaceName(data.address, lat, lon);
+    state.placeName = name;
+
+    $("#targetName").textContent = name;
+    $("#selectedTitle").textContent = name;
+    $("#selectedDescription").textContent =
+      `Selected ${name}. Explore the satellite surroundings, street imagery and current conditions below.`;
+
+    if (data.display_name) {
+      $("#streetLocation").textContent =
+        `Nearest area: ${data.display_name}`;
+    }
+  } catch (error) {
+    if (requestId !== state.locationRequest) return;
+
+    const fallback = formatCoord(lat, lon);
+    state.placeName = fallback;
+    $("#targetName").textContent = fallback;
+    $("#selectedTitle").textContent = fallback;
+    $("#selectedDescription").textContent =
+      `Selected point at ${fallback}. Explore the satellite surroundings, street imagery and current conditions below.`;
+  }
+}
+
+
+// ======================================================
 // SET TARGET
 // ======================================================
 
@@ -660,16 +824,18 @@ function setTarget(
     );
 
   $("#selectedTitle").textContent =
-    formatCoord(
-      state.lat,
-      state.lon
-    );
+    state.placeName || "Locating selected point…";
 
   $("#selectedDescription").textContent =
     `Selected point at ${formatCoord(
       state.lat,
       state.lon
-    )}. Explore the satellite surroundings, street imagery and current conditions below.`;
+    )}. Looking up the nearest named location…`;
+
+  reverseGeocode(
+    state.lat,
+    state.lon
+  );
 
 
   $("#mapsLink").href =
@@ -722,37 +888,23 @@ const pointer =
 renderer.domElement.addEventListener(
   "pointerdown",
   (event) => {
-
-    state.downX =
-      event.clientX;
-
-    state.downY =
-      event.clientY;
-
+    state.downX = event.clientX;
+    state.downY = event.clientY;
     state.moved = false;
-
   }
 );
-
 
 renderer.domElement.addEventListener(
   "pointermove",
   (event) => {
-
     if (
       Math.hypot(
-        event.clientX -
-          state.downX,
-
-        event.clientY -
-          state.downY
+        event.clientX - state.downX,
+        event.clientY - state.downY
       ) > 8
     ) {
-
       state.moved = true;
-
     }
-
   }
 );
 
@@ -1597,47 +1749,66 @@ setTarget(
 // ANIMATION LOOP
 // ======================================================
 
-function animate(
-  time
-) {
+let previousFrameTime = performance.now();
 
-  requestAnimationFrame(
-    animate
+function animate(time) {
+  requestAnimationFrame(animate);
+
+  const dt = Math.min(
+    2.5,
+    Math.max(0.25, (time - previousFrameTime) / 16.67)
   );
-
+  previousFrameTime = time;
 
   controls.update();
 
+  // ----------------------------------------------------
+  // DRAG RELEASE MOMENTUM
+  // ----------------------------------------------------
+  if (!rotationState.dragging) {
+    const speed =
+      Math.abs(rotationState.velocityX) +
+      Math.abs(rotationState.velocityY);
+
+    if (speed > 0.00001) {
+      globe.rotation.y += rotationState.velocityX * dt;
+      globe.rotation.x += rotationState.velocityY * dt;
+
+      globe.rotation.y = wrapAngle(globe.rotation.y);
+      globe.rotation.x = wrapAngle(globe.rotation.x);
+
+      rotationState.velocityX *= Math.pow(FRICTION, dt);
+      rotationState.velocityY *= Math.pow(FRICTION, dt);
+      rotationState.idleTime += 16.67 * dt;
+    } else {
+      rotationState.velocityX = 0;
+      rotationState.velocityY = 0;
+      rotationState.idleTime += 16.67 * dt;
+    }
+
+    // After the thrown Earth slows down, keep it gently rotating
+    // forever instead of stopping at an invisible boundary.
+    if (rotationState.idleTime > IDLE_DELAY) {
+      globe.rotation.y += IDLE_ROTATION * dt;
+      globe.rotation.y = wrapAngle(globe.rotation.y);
+    }
+  } else {
+    rotationState.idleTime = 0;
+  }
 
   // Pulsing location marker
   const pulse =
     1 +
-    Math.sin(
-      time * 0.0024
-    ) *
-    0.08;
+    Math.sin(time * 0.0024) * 0.08;
 
-
-  markerRing.scale.setScalar(
-    pulse
-  );
-
+  markerRing.scale.setScalar(pulse);
 
   // Very subtle cloud movement
-  cloudShell.rotation.y +=
-    0.000055;
+  cloudShell.rotation.y += 0.000055 * dt;
 
-
-  renderer.render(
-    scene,
-    camera
-  );
-
+  renderer.render(scene, camera);
 }
 
-
-requestAnimationFrame(
-  animate
-);
+requestAnimationFrame(animate);
 
 
