@@ -423,26 +423,7 @@ function initMap() {
       "● MAP LOCATION LOCKED";
   });
 }
-  state.mapMarker = L.circleMarker([state.lat, state.lon], {
-    radius: 7,
-    color: "#ffffff",
-    weight: 2,
-    fillColor: "#8d7aff",
-    fillOpacity: 1
-  }).addTo(state.map);
-  state.mapCircle = L.circle([state.lat, state.lon], {
-    radius: 9000,
-    color: "#8d7aff",
-    weight: 1,
-    opacity: 0.7,
-    fill: false
-  }).addTo(state.map);
-  state.map.on("click", (event) => {
-    setTarget(event.latlng.lat, event.latlng.lng, { loadWeather: true, streetView: false });
-    $("#connection").textContent = "● MAP LOCATION LOCKED";
-  });
-}
-
+  
 function updateMap(lat, lon) {
   if (!state.map) {
     initMap();
