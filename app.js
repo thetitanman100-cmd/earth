@@ -305,11 +305,124 @@ function weatherCodeName(code) {
 
 function initMap() {
   if (!window.L || state.map) return;
-  state.map = L.map("satelliteMap", { zoomControl: true, worldCopyJump: true }).setView([state.lat, state.lon], 5);
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
-    maxZoom: 19,
-    attribution: "Tiles © Esri"
-  }).addTo(state.map);
+
+  state.map = L.map("satelliteMap", {
+    zoomControl: true,
+    worldCopyJump: true
+  }).setView(
+    [state.lat, state.lon],
+    5
+  );
+
+
+  /* =========================
+     OPENSTREETMAP
+  ========================= */
+
+  const osmLayer = L.tileLayer(
+    "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
+      maxZoom: 19,
+
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>'
+    }
+  );
+
+
+  /* =========================
+     ESRI SATELLITE
+  ========================= */
+
+  const satelliteLayer = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    {
+      maxZoom: 19,
+
+      attribution:
+        "Tiles &copy; Esri"
+    }
+  );
+
+
+  /*
+     Start with satellite imagery.
+  */
+
+  satelliteLayer.addTo(state.map);
+
+
+  /*
+     Give the user a choice between:
+
+     🛰️ Satellite
+     🗺️ OpenStreetMap
+  */
+
+  const baseMaps = {
+    "🛰️ Satellite": satelliteLayer,
+    "🗺️ OpenStreetMap": osmLayer
+  };
+
+
+  L.control
+    .layers(baseMaps, null, {
+      position: "topright"
+    })
+    .addTo(state.map);
+
+
+  /* =========================
+     LOCATION MARKER
+  ========================= */
+
+  state.mapMarker = L.circleMarker(
+    [state.lat, state.lon],
+    {
+      radius: 7,
+      color: "#ffffff",
+      weight: 2,
+      fillColor: "#8d7aff",
+      fillOpacity: 1
+    }
+  ).addTo(state.map);
+
+
+  /* =========================
+     LOCATION CIRCLE
+  ========================= */
+
+  state.mapCircle = L.circle(
+    [state.lat, state.lon],
+    {
+      radius: 9000,
+      color: "#8d7aff",
+      weight: 1,
+      opacity: 0.7,
+      fill: false
+    }
+  ).addTo(state.map);
+
+
+  /* =========================
+     CLICK MAP
+  ========================= */
+
+  state.map.on("click", (event) => {
+
+    setTarget(
+      event.latlng.lat,
+      event.latlng.lng,
+      {
+        loadWeather: true,
+        streetView: false
+      }
+    );
+
+    $("#connection").textContent =
+      "● MAP LOCATION LOCKED";
+  });
+}
   state.mapMarker = L.circleMarker([state.lat, state.lon], {
     radius: 7,
     color: "#ffffff",
