@@ -1,7 +1,0 @@
-VIEW YOUR EARTH
-
-Double-click "START VIEW YOUR EARTH.bat" to start the website and open it in Chrome.
-
-First run: the launcher may take a little longer while npm installs the required components.
-
-Keep the small server window open while using the site. Close that window when finished.
