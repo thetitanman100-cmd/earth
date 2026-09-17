@@ -32,15 +32,24 @@ renderer.setClearColor(0x000000, 0);
 globeHost.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
+
 controls.enablePan = false;
+
 controls.enableDamping = true;
 controls.dampingFactor = 0.055;
+
 controls.rotateSpeed = 0.55;
 controls.zoomSpeed = 0.75;
+
 controls.minDistance = 1.55;
 controls.maxDistance = 5.25;
+
 controls.minPolarAngle = 0.18;
 controls.maxPolarAngle = Math.PI - 0.18;
+
+/* Continuous Earth rotation */
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.55;
 controls.target.set(0, 0, 0);
 controls.saveState();
 
