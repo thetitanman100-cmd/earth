@@ -1639,3 +1639,5 @@ function animate(
 requestAnimationFrame(
   animate
 );
+
+}
