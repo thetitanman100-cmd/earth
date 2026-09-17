@@ -4,120 +4,365 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#05020c">
+
   <title>VIEW YOUR EARTH</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
+
+  <!-- Leaflet -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin=""
+  >
+
+  <!-- Your CSS -->
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
+
   <div class="noise" aria-hidden="true"></div>
   <div class="aurora aurora-a" aria-hidden="true"></div>
   <div class="aurora aurora-b" aria-hidden="true"></div>
 
+  <!-- HEADER -->
   <header class="topbar">
-    <div class="brand">VIEW YOUR <span>EARTH</span></div>
+    <div class="brand">
+      VIEW YOUR <span>EARTH</span>
+    </div>
+
     <div class="header-actions">
-      <span id="connection" class="status-dot">● SYSTEM READY</span>
-      <button id="jumpTop" class="ghost-button" type="button">EXPLORE</button>
+      <span id="connection" class="status-dot">
+        ● SYSTEM READY
+      </span>
+
+      <button id="jumpTop" class="ghost-button" type="button">
+        EXPLORE
+      </button>
     </div>
   </header>
 
+
   <main>
-    <section class="hero" id="hero" aria-label="Interactive Earth globe">
-      <div id="globe" class="globe" aria-label="Interactive 3D Earth"></div>
+
+    <!-- =========================
+         3D EARTH
+    ========================== -->
+    <section
+      class="hero"
+      id="hero"
+      aria-label="Interactive Earth globe"
+    >
+
+      <div
+        id="globe"
+        class="globe"
+        aria-label="Interactive 3D Earth"
+      ></div>
+
       <div class="globe-loading" id="globeLoading">
         <div class="loading-ring"></div>
         <span>LOADING EARTH</span>
       </div>
 
+
+      <!-- INTRO -->
       <div class="hud intro">
-        <div class="eyebrow">PLANETARY EXPLORER / 01</div>
-        <h1>VIEW YOUR<br><em>EARTH.</em></h1>
-        <p>Drag the planet to orbit around it. Scroll to zoom. Click the surface to select a location.</p>
-        <div class="controls"><span>↔ ROTATE</span><span>◎ SELECT</span><span>＋ ZOOM</span></div>
+
+        <div class="eyebrow">
+          PLANETARY EXPLORER / 01
+        </div>
+
+        <h1>
+          VIEW YOUR<br>
+          <em>EARTH.</em>
+        </h1>
+
+        <p>
+          Drag the planet to orbit around it.
+          Scroll to zoom.
+          Click the surface to select a location.
+        </p>
+
+        <div class="controls">
+          <span>↔ ROTATE</span>
+          <span>◎ SELECT</span>
+          <span>＋ ZOOM</span>
+        </div>
+
       </div>
 
+
+      <!-- CURRENT TARGET -->
       <div class="hud telemetry">
-        <div class="mini">CURRENT TARGET</div>
-        <strong id="targetName">India</strong>
-        <span id="targetCoords">20.594° N · 78.963° E</span>
+
+        <div class="mini">
+          CURRENT TARGET
+        </div>
+
+        <strong id="targetName">
+          India
+        </strong>
+
+        <span id="targetCoords">
+          20.594° N · 78.963° E
+        </span>
+
       </div>
 
+
+      <!-- LOCATION DATA -->
       <div class="hud data">
-        <div class="panel-title">LOCATION TELEMETRY</div>
-        <div class="data-row"><span>LATITUDE</span><b id="lat">20.594°</b></div>
-        <div class="data-row"><span>LONGITUDE</span><b id="lon">78.963°</b></div>
-        <div class="data-row"><span>TEMPERATURE</span><b id="temp">—</b></div>
-        <div class="data-row"><span>WIND</span><b id="wind">—</b></div>
-        <button id="descend" class="primary-button" type="button">DESCEND TO LOCATION <span>↘</span></button>
+
+        <div class="panel-title">
+          LOCATION TELEMETRY
+        </div>
+
+        <div class="data-row">
+          <span>LATITUDE</span>
+          <b id="lat">20.594°</b>
+        </div>
+
+        <div class="data-row">
+          <span>LONGITUDE</span>
+          <b id="lon">78.963°</b>
+        </div>
+
+        <div class="data-row">
+          <span>TEMPERATURE</span>
+          <b id="temp">—</b>
+        </div>
+
+        <div class="data-row">
+          <span>WIND</span>
+          <b id="wind">—</b>
+        </div>
+
+        <button
+          id="descend"
+          class="primary-button"
+          type="button"
+        >
+          DESCEND TO LOCATION
+          <span>↘</span>
+        </button>
+
       </div>
 
-      <div class="zoom-readout">ZOOM <b id="zoom">1.00×</b></div>
-      <div class="drag-readout">DRAG TO ORBIT / SCROLL TO ZOOM</div>
-      <div class="crosshair" aria-hidden="true"><span></span></div>
+
+      <!-- ZOOM -->
+      <div class="zoom-readout">
+        ZOOM <b id="zoom">1.00×</b>
+      </div>
+
+      <div class="drag-readout">
+        DRAG TO ORBIT / SCROLL TO ZOOM
+      </div>
+
+      <div class="crosshair" aria-hidden="true">
+        <span></span>
+      </div>
+
     </section>
 
+
+    <!-- =========================
+         LOCATION SECTION
+    ========================== -->
     <section class="mission" id="mission">
+
       <div class="section-heading">
-        <div class="eyebrow">LOCATION / 02</div>
-        <h2 id="selectedTitle">India</h2>
-        <p id="selectedDescription">Select a point on the globe to inspect its satellite surroundings, street-level imagery and current climate.</p>
+
+        <div class="eyebrow">
+          LOCATION / 02
+        </div>
+
+        <h2 id="selectedTitle">
+          India
+        </h2>
+
+        <p id="selectedDescription">
+          Select a point on the globe to inspect its satellite
+          surroundings, street-level imagery and current climate.
+        </p>
+
       </div>
 
+
+      <!-- MAP -->
       <div class="map-shell">
-        <div id="satelliteMap" aria-label="Satellite map"></div>
-        <div class="map-overlay top">OPEN MAP VIEW <span>OPENSTREETMAP</span></div>
-        <div class="map-overlay bottom" id="mapCoords">20.594° N · 78.963° E</div>
+
+        <div
+          id="satelliteMap"
+          aria-label="Satellite map"
+        ></div>
+
+        <div class="map-overlay top">
+          OPEN MAP VIEW
+          <span>OPENSTREETMAP</span>
+        </div>
+
+        <div
+          class="map-overlay bottom"
+          id="mapCoords"
+        >
+          20.594° N · 78.963° E
+        </div>
+
       </div>
 
+
+      <!-- DETAILS -->
       <div class="detail-grid">
+
+
+        <!-- STREET VIEW -->
         <article class="street card">
-          <div class="card-top"><span>STREET VIEW / 03</span><span id="streetStatus">READY</span></div>
-          <div id="streetFrame" class="street-frame">
-            <div class="street-placeholder"><div class="street-icon">◎</div><p>Click <b>DESCEND TO LOCATION</b> to search for the nearest Google Street View image.</p></div>
+
+          <div class="card-top">
+            <span>STREET VIEW / 03</span>
+            <span id="streetStatus">READY</span>
           </div>
-          <div class="card-bottom"><span id="streetLocation">Nearest available road imagery</span><a id="mapsLink" href="#" target="_blank" rel="noopener noreferrer">OPEN IN GOOGLE MAPS ↗</a></div>
+
+          <div
+            id="streetFrame"
+            class="street-frame"
+          >
+
+            <div class="street-placeholder">
+
+              <div class="street-icon">
+                ◎
+              </div>
+
+              <p>
+                Click
+                <b>DESCEND TO LOCATION</b>
+                to search for the nearest Google Street View image.
+              </p>
+
+            </div>
+
+          </div>
+
+          <div class="card-bottom">
+
+            <span id="streetLocation">
+              Nearest available road imagery
+            </span>
+
+            <a
+              id="mapsLink"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              OPEN IN GOOGLE MAPS ↗
+            </a>
+
+          </div>
+
         </article>
 
+
+        <!-- WEATHER -->
         <article class="climate card">
-          <div class="card-top"><span>CLIMATE / 04</span><span id="weatherStatus">LIVE</span></div>
-          <div class="temperature" id="bigTemp">—°</div>
-          <div class="condition" id="condition">Waiting for coordinates</div>
-          <div class="weather-grid">
-            <div><small>WIND</small><b id="wWind">—</b></div>
-            <div><small>HUMIDITY</small><b id="humidity">—</b></div>
-            <div><small>LOCAL TIME</small><b id="localTime">—</b></div>
-            <div><small>WEATHER CODE</small><b id="weatherCode">—</b></div>
+
+          <div class="card-top">
+            <span>CLIMATE / 04</span>
+            <span id="weatherStatus">LIVE</span>
           </div>
+
+          <div
+            class="temperature"
+            id="bigTemp"
+          >
+            —°
+          </div>
+
+          <div
+            class="condition"
+            id="condition"
+          >
+            Waiting for coordinates
+          </div>
+
+          <div class="weather-grid">
+
+            <div>
+              <small>WIND</small>
+              <b id="wWind">—</b>
+            </div>
+
+            <div>
+              <small>HUMIDITY</small>
+              <b id="humidity">—</b>
+            </div>
+
+            <div>
+              <small>LOCAL TIME</small>
+              <b id="localTime">—</b>
+            </div>
+
+            <div>
+              <small>WEATHER CODE</small>
+              <b id="weatherCode">—</b>
+            </div>
+
+          </div>
+
         </article>
+
       </div>
 
+
+      <!-- SECURITY -->
       <div class="security-note">
+
         <span>●</span>
-        <div><b>API SECURITY</b><br>The Google credential is kept server-side in <code>.env</code>. It is never placed in this page's JavaScript.</div>
+
+        <div>
+          <b>API SECURITY</b>
+          <br>
+          The Google credential is kept server-side in
+          <code>.env</code>.
+          It is never placed in this page's JavaScript.
+        </div>
+
       </div>
+
     </section>
+
   </main>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script>
-    window.addEventListener("error", (event) => {
-      const box = document.getElementById("globeLoading");
-      if (!box) return;
-      const span = box.querySelector("span");
-      if (span && event && event.message) span.textContent = "3D ENGINE ERROR — CHECK INTERNET";
-    });
-  </script>
- <script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.181.2/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.181.2/examples/jsm/"
+
+  <!-- LEAFLET JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    crossorigin=""
+  ></script>
+
+
+  <!-- THREE.JS IMPORT MAP -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.181.2/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.181.2/examples/jsm/"
+    }
   }
-}
-</script>
+  </script>
+
+
+  <!-- YOUR JAVASCRIPT -->
   <script type="module" src="app.js"></script>
+
 </body>
 </html>
