@@ -1640,4 +1640,4 @@ requestAnimationFrame(
   animate
 );
 
-}
+
